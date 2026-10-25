@@ -1,0 +1,6 @@
+install.packages('tidyverse')
+library(readr)
+library(here)
+
+data1 <- read_csv(here('./data/hotel_bookings.csv'), show_col_types = FALSE)
+head(data1, 5)

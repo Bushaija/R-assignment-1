@@ -1,0 +1,32 @@
+install.packages(c("DBI", "RPostgres"))   # run once
+library(DBI)
+library(RPostgres)
+
+# Connect
+con <- dbConnect(
+  RPostgres::Postgres(),
+  dbname   = "r_psql_db",
+  host     = "localhost",
+  port     = 5435,
+  user     = "postgres",
+  password = "kinyarwanda"   # don't hard-code passwords
+)
+
+# Explore
+dbListTables(con)
+dbListFields(con, "students")
+
+# Import a whole table
+stdudents <- dbReadTable(con, "students")
+
+# Import the result of a SQL query
+result <- dbGetQuery(con, "
+  SELECT *
+  FROM students
+  LIMIT 10
+")
+
+result
+
+# Always close the connection when done
+dbDisconnect(con)
