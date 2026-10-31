@@ -1,0 +1,203 @@
+---
+title: "Visualizing Fuel Efficiency with ggplot2"
+subtitle: "A Tour of Nine Geoms Using the mtcars Dataset"
+author: "Your Name"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  fig.width = 7, fig.height = 4.5, fig.align = "center"
+)
+
+library(ggplot2)
+
+# Prepare data once: treat cylinders as a categorical variable
+mt <- mtcars
+mt$cyl <- factor(mt$cyl)
+
+# Reusable theme and mean value
+theme_set(theme_minimal(base_size = 12))
+mean_mpg <- mean(mt$mpg)
+```
+
+# Introduction
+
+## Objective
+Demonstrate nine `ggplot2` geoms and show what each reveals about fuel efficiency (`mpg`) in the built-in `mtcars` dataset.
+
+## Data
+`mtcars` contains `r nrow(mt)` cars and `r ncol(mt)` variables, taken from the 1974 *Motor Trend* magazine.
+
+| Variable | Type | Description |
+|---|---|---|
+| `mpg` | Continuous | Miles per US gallon |
+| `cyl` | Categorical | Number of cylinders (4, 6, 8) |
+| `wt` | Continuous | Weight (1000 lbs) |
+
+```{r glimpse}
+str(mt[, c("mpg", "cyl", "wt")])
+```
+
+## Plot Pattern
+Every plot follows the same structure: `ggplot(data, aes(...)) + geom_*()`, with layers stacked using `+`.
+
+# Distributions of One Variable
+
+## Bar Chart: Cars per Cylinder Group
+`geom_bar()` counts observations in each category.
+
+```{r bar}
+ggplot(mt, aes(cyl)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Number of Cars by Cylinder Count",
+       x = "Cylinders", y = "Count")
+```
+
+**Interpretation:** 8-cylinder cars are the most common in this sample and 6-cylinder cars the least.
+
+## Histogram: Distribution of MPG
+`geom_histogram()` bins a continuous variable and counts values per bin.
+
+```{r histogram}
+ggplot(mt, aes(mpg)) +
+  geom_histogram(bins = 10, fill = "steelblue", color = "white") +
+  labs(title = "Distribution of Miles per Gallon",
+       x = "Miles per Gallon", y = "Count")
+```
+
+**Interpretation:** MPG is slightly right-skewed, with most cars between roughly 15 and 25 mpg and a few efficient outliers.
+
+## Density with Rug: Smoothed Distribution
+`geom_density()` smooths the histogram, and `geom_rug()` marks each individual observation along the axis.
+
+```{r density}
+ggplot(mt, aes(mpg)) +
+  geom_density(fill = "skyblue", alpha = 0.5) +
+  geom_rug() +
+  labs(title = "Density of Miles per Gallon",
+       subtitle = "Rug ticks show individual cars",
+       x = "Miles per Gallon", y = "Density")
+```
+
+**Interpretation:** The density shows the same shape as the histogram without depending on bin choice. The rug shows where individual cars sit.
+
+## Histogram with Mean Line
+`geom_vline()` adds a vertical reference line, here at the mean.
+
+```{r vline}
+ggplot(mt, aes(mpg)) +
+  geom_histogram(bins = 10, fill = "steelblue", color = "white") +
+  geom_vline(xintercept = mean_mpg, color = "red", linetype = "dashed") +
+  labs(title = "Distribution of MPG with Mean Marked",
+       subtitle = paste("Mean =", round(mean_mpg, 1), "mpg"),
+       x = "Miles per Gallon", y = "Count")
+```
+
+**Interpretation:** The mean is about `r round(mean_mpg, 1)` mpg, and the dashed line splits the distribution near its center.
+
+# Comparing a Continuous Variable Across Groups
+
+## Boxplot: MPG by Cylinder
+`geom_boxplot()` shows the median, quartiles, and outliers for each group.
+
+```{r boxplot}
+ggplot(mt, aes(cyl, mpg, fill = cyl)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(title = "Fuel Efficiency by Number of Cylinders",
+       x = "Cylinders", y = "Miles per Gallon")
+```
+
+**Interpretation:** Median MPG falls as cylinder count rises. 4-cylinder cars are the most efficient, and 8-cylinder cars are the least.
+
+## Violin with Jitter: Shape and Raw Points
+`geom_violin()` shows the distribution shape per group, and `geom_jitter()` overlays the raw points with a small horizontal offset to reduce overlap.
+
+```{r violin}
+ggplot(mt, aes(cyl, mpg)) +
+  geom_violin(fill = "grey90") +
+  geom_jitter(width = 0.1, alpha = 0.7, color = "steelblue") +
+  labs(title = "MPG Distribution by Cylinder Group",
+       subtitle = "Violin shows shape; points show individual cars",
+       x = "Cylinders", y = "Miles per Gallon")
+```
+
+**Interpretation:** The 4-cylinder group has the widest spread. The 6-cylinder group has only a few points, so its violin shape should be read cautiously.
+
+# Relationship Between Two Continuous Variables
+
+## Scatterplot with Mean Reference Line
+`geom_point()` plots each car, and `geom_hline()` adds a horizontal reference line at mean MPG.
+
+```{r hline}
+ggplot(mt, aes(wt, mpg)) +
+  geom_point(size = 2, alpha = 0.8) +
+  geom_hline(yintercept = mean_mpg, color = "red", linetype = "dashed") +
+  labs(title = "Weight vs Fuel Efficiency",
+       subtitle = "Dashed line marks mean MPG",
+       x = "Weight (1000 lbs)", y = "Miles per Gallon")
+```
+
+**Interpretation:** Heavier cars tend to have lower MPG. The correlation is about `r round(cor(mt$wt, mt$mpg), 2)`, a strong negative relationship.
+
+## Line Plot: MPG as Weight Increases
+`geom_line()` connects points in order along the x-axis, so the data must be sorted first.
+
+```{r line}
+cars_sorted <- mt[order(mt$wt), ]
+
+ggplot(cars_sorted, aes(wt, mpg)) +
+  geom_line(color = "steelblue") +
+  labs(title = "MPG Ordered by Vehicle Weight",
+       x = "Weight (1000 lbs)", y = "Miles per Gallon")
+```
+
+**Interpretation:** The overall trend is downward, but the line is jagged because it connects separate cars. This is not a time series, so a scatterplot with `geom_smooth()` is usually the better choice.
+
+## Text Labels: Identifying Individual Cars
+`geom_text()` prints a label at each point, here the car name.
+
+```{r text, fig.height=6}
+ggplot(mt, aes(wt, mpg, label = rownames(mt))) +
+  geom_text(size = 3) +
+  labs(title = "Weight vs MPG with Car Names",
+       x = "Weight (1000 lbs)", y = "Miles per Gallon")
+```
+
+**Interpretation:** Labels make it easy to spot individual cars, such as the lightest and most efficient models. Overlap is a problem with 32 points, and `ggrepel::geom_text_repel()` would fix it.
+
+# Summary
+
+| Geom | Purpose | Best used for |
+|---|---|---|
+| `geom_bar()` | Count categories | One categorical variable |
+| `geom_histogram()` | Bin and count | One continuous variable |
+| `geom_density()` | Smoothed distribution | Comparing shapes |
+| `geom_rug()` | Mark each observation | Adding to density or scatter |
+| `geom_boxplot()` | Median, quartiles, outliers | Continuous by category |
+| `geom_violin()` | Distribution shape | Continuous by category |
+| `geom_jitter()` | Raw points, spread out | Overlaying on groups |
+| `geom_vline()`, `geom_hline()` | Reference lines | Marking a mean or threshold |
+| `geom_point()` | Individual observations | Two continuous variables |
+| `geom_line()` | Connect ordered points | Time series or sorted data |
+| `geom_text()` | Label points | Identifying observations |
+
+**Key findings**
+
+1. Fuel efficiency decreases as cylinder count and vehicle weight increase.
+2. Most cars in the sample fall between roughly 15 and 25 mpg.
+3. Different geoms answer different questions, so combine them (for example violin plus jitter) for a fuller picture.
+
+# Reproducibility
+
+```{r session-info}
+sessionInfo()
+```
